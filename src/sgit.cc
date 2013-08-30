@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2010 Sam Day
+ * Copyright (c) 2013 Lush Zero
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,66 +23,54 @@
  */
 
 #include "sgit.h"
-#include "repository.h"
-#include "commit.h"
-#include "signature.h"
-#include "tree.h"
-#include "blob.h"
-#include "tag.h"
-#include "remote.h"
-#include "index.h"
+#include <node.h>
+#include <v8.h>
+#include <git2.h>
 
-namespace sgit {
+using namespace v8;
 
-Persistent<Object> module;
-
-static Handle<Object> CreateTypeObject() {
-	HandleScope scope;
-	Handle<Object> o = Object::New();
-	ImmutableSet(o, String::NewSymbol("commit"), Integer::New(GIT_OBJ_COMMIT));
-	ImmutableSet(o, String::NewSymbol("tree"), Integer::New(GIT_OBJ_TREE));
-	ImmutableSet(o, String::NewSymbol("blob"), Integer::New(GIT_OBJ_BLOB));
-	ImmutableSet(o, String::NewSymbol("tag"), Integer::New(GIT_OBJ_TAG));
-	return scope.Close(o);
-}
-
-extern "C" void
-init(Handle<Object> target) {
-	HandleScope scope;
-	module = Persistent<Object>::New(target);
-
-	// Initialize libgit2's thread system.
+Handle<Value> init_repository(const Arguments& args) {
+	
+	//initialize the libgit2 thread handling subsystem, will only work if libgit2 was compiled with PTHREAD on
 	git_threads_init();
 
-	Signature::Init();
-	Repository::Init(target);
-	Commit::Init(target);
-	Tree::Init(target);
-	Blob::Init(target);
-	Tag::Init(target);
-	Index::Init(target);
+	HandleScope scope;
 
-	Remote::Init(target);
+	Local<String> path = Local<String>::Cast(args[0]);
+	Local<Function> callback = Local<Function>::Cast(args[1]);
+	const char *err = "";
 
-	ImmutableSet(target, String::NewSymbol("minOidLength"), Integer::New(GIT_OID_MINPREFIXLEN));
-	ImmutableSet(target, String::NewSymbol("types"), CreateTypeObject());
+	git_repository *repo = NULL;
 
-	NODE_DEFINE_CONSTANT(target, GIT_DIRECTION_PUSH);
-	NODE_DEFINE_CONSTANT(target, GIT_DIRECTION_FETCH);
+	//AsciiValue flavor overides * operator to return const char
+	String::AsciiValue argpath(path);
 
-	/*
-	IndexEntry::Init(target);
-	
-	RevWalker::Init(target);
-	Reference::Init(target);
 
-	ErrorInit(target);*/
+	//TODO: add support for bare repo argument
+        if (git_repository_init(&repo, *argpath,0) < 0) {
+		err = "Initilizing repository failed, git_repository_init returned non zero value";
+	}
+
+	Local<Value> argv[2] = { Local<Value>::New(String::New(err)),path };
+	callback->Call(Context::GetCurrent()->Global(), 2, argv);
+
+
+	//TODO: are we leaking any memory on the v8 types and related casts/conversions?
+        git_repository_free(repo);
+        git_threads_shutdown();
+
+	return scope.Close(Undefined());
 }
 
-Handle<Object> GetModule() {
-	return module;
+/*
+	This function is called from Node to actually register the binding of functions into the Node symbol 'table'. Currently sgit utilizies 
+	function (node) to function (c++) to function (c)  mapping as it is most similar to the underlying libgit2 C library.
+*/
+void init(Handle<Object> exports, Handle<Object> module) {
+	exports->Set(String::NewSymbol("init_repository"),FunctionTemplate::New(Method)->GetFunction());
+
+	//alternative form to export as JS constructor rather than individual functions, not needed ATM, kept for reference
+	//module->Set(String::NewSymbol("exports"),FunctionTemplate::New(Method)->GetFunction());
 }
 
-} // namespace sgit
-
-NODE_MODULE(sgit, sgit::init)
+NODE_MODULE(sgit, init)

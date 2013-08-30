@@ -1,37 +1,23 @@
 {
-	'targets': [
+	"targets": [
 		{
-			'target_name': 'sgit',
-			'sources': [
-				'src/sgit.cc',
-				'src/repository.cc',
-				'src/baton.cc',
+			"target_name": "sgit",
+			"sources": [ 
+				"src/sgit.cc" 
 			],
-			'include_dirs': [
-				'deps/v8-convert',
-				'deps/libgit2/include'
+			"include_dirs": [
+				"deps/libgit2/include"
 			],
-
-			'libraries': [
-				'-L<!(pwd)/deps/libgit2/build',
-				'-lgit2'
+			"libraries": [
+				"-L<!(pwd)/deps/libgit2/libgit2.so",
+				"-lgit2"
 			],
-
 			'cflags': [
 				'-Wall'
 			],
-
 			'ldflags': [
-				'-Wl,-rpath,\$$ORIGIN/../../deps/libgit2/build'
-			],
-
-			'conditions': [
-				['OS=="mac"', {
-					'xcode_settings': {
-						'GCC_ENABLE_CPP_EXCEPTIONS': 'YES'
-					}
-				}]
-			]
+                                '-Wl,-rpath,\$$ORIGIN/../../deps/libgit2'
+                        ]
 		}
-	]
+	],
 }
