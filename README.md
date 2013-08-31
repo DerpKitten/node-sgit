@@ -1,4 +1,4 @@
-# Gitteh `v0.17.2`
+# Node-sgit `v0.1`
 
 [![build status](https://secure.travis-ci.org/libgit2/node-sgit.png)](http://travis-ci.org/libgit2/node-sgit)
 
@@ -6,7 +6,7 @@
 
 sgit requires `node 0.10`, `CMake 2.6` and `gcc`. Installation via NPM:
 
-	npm install gitteh
+	npm install sgit
 
 ## What?
 
@@ -28,11 +28,13 @@ To contribute please create a fork on github and make a pull request with your c
 
 ### Building
 
-Next, you need to install gitteh's dependencies and build it. In gitteh's root directory, run:
+Next, you need to install the dependencies for sgit and build it. In the sgit repo root directory, run:
 
-    npm install
-    ./node_modules/.bin/node-gyp configure
-    ./node_modules/.bin/node-gyp build
+	git submodule init
+	git submodule update 
+	npm install node-gyp
+	./node_modules/.bin/node-gyp configure
+	./node_modules/.bin/node-gyp build
 
 ### Installing Manually
 
