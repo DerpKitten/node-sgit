@@ -8,7 +8,8 @@
     "node": ">= 0.4.0"
   },
   "dependencies": {
-   "node-gyp": "~0.8.2"
+   "node-gyp": "~0.8.2",
+   "exec-sync": "~0.1.6"
   },
   "devDependencies": {
     "mocha": "~1.8.1",
