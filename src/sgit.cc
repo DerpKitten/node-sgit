@@ -31,9 +31,6 @@ using namespace v8;
 
 Handle<Value> init_repository(const Arguments& args) {
 	
-	//initialize the libgit2 thread handling subsystem, will only work if libgit2 was compiled with PTHREAD on
-	git_threads_init();
-
 	HandleScope scope;
 
 	Local<String> path = Local<String>::Cast(args[0]);
@@ -62,12 +59,85 @@ Handle<Value> init_repository(const Arguments& args) {
 	return scope.Close(Undefined());
 }
 
+
+Handle<Value> commit_bypath(const Arguments& args) {
+
+	HandleScope scope;
+
+	Local<String> path = Local<String>::Cast(args[0]);
+	Local<String> file = Local<String>::Cast(args[1]);
+	Local<String> message = Local<String>::Cast(args[2]);
+	Local<Function> callback = Local<Function>::Cast(args[3]);
+	const char *err = "";
+
+	//AsciiValue flavor overides * operator to return const char
+	String::AsciiValue argpath(path);
+	String::AsciiValue argfile(file);
+	String::AsciiValue argmessage(message);
+
+	git_repository *repo;
+	git_signature *sig;
+        git_index *index;
+        git_oid tree_id, commit_id;
+        git_tree *tree;
+
+        if (git_repository_open(&repo, *argpath) < 0) {
+		err = "Opening repository failed, git_repository_open returned non zero value";
+	}
+        /* Now let's create an empty tree for this commit */
+
+        if (git_repository_index(&index, repo) < 0) {
+		err = "Opening index failed, git_repository_index returned non zero value";
+	}
+
+        if (git_index_add_bypath(index, *argfile) < 0) {
+		err = "Index add failed, git_index_add_bypath returned non zero value";
+	}
+        git_index_write(index);
+
+        git_commit *parent = NULL;
+
+        // it is okay if looking up the HEAD fails
+        git_revparse_single((git_object **)&parent, repo, "HEAD");
+
+        git_index_write_tree(&tree_id, index);
+
+	//refresh index
+        git_repository_index(&index, repo);
+
+        git_tree_lookup(&tree, repo, &tree_id);
+
+	if (git_signature_default(&sig, repo) < 0) {
+		git_signature_now(&sig, "Node-sgit https://github.com/lushzero/node-sgit", "none@example.com");
+	}
+
+        git_commit_create_v(&commit_id, repo, "HEAD", sig, sig, NULL, *argmessage, tree, parent ? 1 : 0, parent);
+
+	//free allocated git resources
+        git_tree_free(tree);
+        git_signature_free(sig);
+        git_index_free(index);
+        git_repository_free(repo);
+
+	Local<Value> argv[1] = { Local<Value>::New(String::New(err)) };
+	callback->Call(Context::GetCurrent()->Global(), 1, argv);
+
+	return scope.Close(Undefined());
+}
+
 /*
 	This function is called from Node to actually register the binding of functions into the Node symbol 'table'. Currently sgit utilizies 
 	function (node) to function (c++) to function (c)  mapping as it is most similar to the underlying libgit2 C library.
 */
 void init(Handle<Object> exports, Handle<Object> module) {
-	exports->Set(String::NewSymbol("init_repository"),FunctionTemplate::New(Method)->GetFunction());
+
+	//initialize the libgit2 thread handling subsystem, will only work if libgit2 was compiled with PTHREAD on
+	git_threads_init();
+
+	//register init_repository as a module exported function
+	exports->Set(String::NewSymbol("init_repository"),FunctionTemplate::New(init_repository)->GetFunction());
+
+	exports->Set(String::NewSymbol("commit_bypath"),FunctionTemplate::New(commit_bypath)->GetFunction());
 
 	//alternative form to export as JS constructor rather than individual functions, not needed ATM, kept for reference
 	//module->Set(String::NewSymbol("exports"),FunctionTemplate::New(Method)->GetFunction());
