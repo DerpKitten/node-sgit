@@ -1,6 +1,6 @@
 # Node-sgit `v0.1`
 
-[![build status](https://secure.travis-ci.org/libgit2/node-sgit.png)](http://travis-ci.org/libgit2/node-sgit)
+[![build status](https://secure.travis-ci.org/DerpKitten/node-sgit.png)](http://travis-ci.org/DerpKitten/node-sgit)
 
 ## Installation
 
