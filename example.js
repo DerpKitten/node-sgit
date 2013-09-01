@@ -1,22 +1,21 @@
 var sgit = require('./build/Release/sgit');
 
-/*sgit.init_repository('./sandbox',function (err, repo) {
+sgit.init_repository('./sandbox',function (err, repo) {
 	if (err) {
 		console.log(err);
 	}
 	console.log(repo);
-});*/
+});
 
-/*sgit.commit_bypath('./sandbox','test.c','here is my commit message',function (err) {
+sgit.commit_bypath('./sandbox','test.c','here is my commit message',function (err) {
 	if (err) {
 		console.log(err);
 	}
-});*/
+});
 
-sgit.log('./',function(err,log) {
+sgit.log('./sandbox',function(err,log) {
 	if (err) {
 		console.log(err);
 	}
-	//console.log(JSON.parse(log));
-	console.log(log);
+	console.log(JSON.parse(log));
 });

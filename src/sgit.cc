@@ -170,15 +170,26 @@ Handle<Value> log(const Arguments& args) {
 
 		cmsg  = git_commit_message(wcommit);
 		std::string stmp(cmsg);
+		boost::replace_all(stmp, "\\","\\\\");
 		boost::replace_all(stmp, "\"","\\\"");
+		boost::replace_all(stmp, "\t","\\t");
+		//boost::replace_all(stmp, "/","\\/");
+		//boost::replace_all(stmp, "\'","\\\'");
 
 		cauth = git_commit_author(wcommit);
 
 		git_oid_tostr(oidstr,sizeof(oidstr),git_commit_tree_id(wcommit));
+
+		std::string snametmp(cauth->name);
+		boost::replace_all(snametmp, "\\","\\\\");
+		boost::replace_all(snametmp, "\"","\\\"");
+		boost::replace_all(snametmp, "\t","\\t");
+		//boost::replace_all(snametmp, "/","\\/");
+		//boost::replace_all(snametmp, "\'","\\\'");
 		
 		json_log << "\"" << oidstr 
 			<< "\":{\"message\":\"" << stmp 
-			<< "\",\"name\":\"" << cauth->name  
+			<< "\",\"name\":\"" << snametmp  
 			<< "\",\"email\":\"" << cauth->email  
 			<< "\",\"time\":\"" << git_commit_time(wcommit) << "\","
 			<< "\"time_offset\":\"" << git_commit_time_offset(wcommit) << "\"" 
