@@ -26,7 +26,8 @@
 #include <node.h>
 #include <v8.h>
 #include <git2.h>
-
+#include <sstream>
+#include <boost/algorithm/string.hpp>
 using namespace v8;
 
 Handle<Value> init_repository(const Arguments& args) {
@@ -125,6 +126,88 @@ Handle<Value> commit_bypath(const Arguments& args) {
 	return scope.Close(Undefined());
 }
 
+
+Handle<Value> log(const Arguments& args) {
+
+        HandleScope scope;
+
+        Local<String> path = Local<String>::Cast(args[0]);
+        Local<Function> callback = Local<Function>::Cast(args[1]);
+        const char *err = "";
+
+        //AsciiValue flavor overides * operator to return const char
+        String::AsciiValue argpath(path);
+
+        git_repository *repo;
+        const git_oid *oid;
+
+        if (git_repository_open(&repo, *argpath) < 0) {
+		err = "Opening repository failed, git_repository_open returned non zero value";
+	}
+
+        git_revspec revspec;
+        git_revparse(&revspec,repo,"HEAD");
+        oid = git_object_id(revspec.from);
+
+        git_revwalk *walk;
+        git_commit *wcommit;
+
+	git_revwalk_new(&walk, repo);
+	git_revwalk_sorting(walk, GIT_SORT_TOPOLOGICAL | GIT_SORT_REVERSE);
+	git_revwalk_push(walk, git_object_id(revspec.from));
+
+	char oidstr[GIT_OID_HEXSZ + 1];
+
+        git_oid *walkoid =  (git_oid *)oid;
+        //int error;
+	std::stringstream json_log;
+	json_log << "{";
+        while ((git_revwalk_next(walkoid, walk)) == 0) {
+		const git_signature *cauth;
+		const char *cmsg;
+                git_commit_lookup(&wcommit, repo, walkoid);
+                //check_error(error, "looking up commit during revwalk");
+
+		cmsg  = git_commit_message(wcommit);
+		std::string stmp(cmsg);
+		boost::replace_all(stmp, "\"","\\\"");
+
+		cauth = git_commit_author(wcommit);
+
+		git_oid_tostr(oidstr,sizeof(oidstr),git_commit_tree_id(wcommit));
+		
+		json_log << "\"" << oidstr 
+			<< "\":{\"message\":\"" << stmp 
+			<< "\",\"name\":\"" << cauth->name  
+			<< "\",\"email\":\"" << cauth->email  
+			<< "\",\"time\":\"" << git_commit_time(wcommit) << "\","
+			<< "\"time_offset\":\"" << git_commit_time_offset(wcommit) << "\"" 
+			<< "},";
+
+		git_commit_free(wcommit);
+	}
+	json_log.seekp(json_log.str().length()-1);
+	json_log << "}";
+
+	git_revwalk_free(walk);
+
+        //free allocated git resources
+        //git_tree_free(tree);
+        //git_signature_free(sig);
+        //git_index_free(index);
+        git_repository_free(repo);
+	std::string stmp(json_log.str());
+	boost::replace_all(stmp, "\r","");
+	boost::replace_all(stmp, "\n","\\n");
+	//printf("%s",stmp.c_str());
+
+        Local<Value> argv[2] = { Local<Value>::New(String::New(err)), Local<String>::New(String::New(stmp.c_str())) };
+        callback->Call(Context::GetCurrent()->Global(), 2, argv);
+
+        return scope.Close(Undefined());
+}
+
+
 /*
 	This function is called from Node to actually register the binding of functions into the Node symbol 'table'. Currently sgit utilizies 
 	function (node) to function (c++) to function (c)  mapping as it is most similar to the underlying libgit2 C library.
@@ -138,6 +221,8 @@ void init(Handle<Object> exports, Handle<Object> module) {
 	exports->Set(String::NewSymbol("init_repository"),FunctionTemplate::New(init_repository)->GetFunction());
 
 	exports->Set(String::NewSymbol("commit_bypath"),FunctionTemplate::New(commit_bypath)->GetFunction());
+
+	exports->Set(String::NewSymbol("log"),FunctionTemplate::New(log)->GetFunction());
 
 	//alternative form to export as JS constructor rather than individual functions, not needed ATM, kept for reference
 	//module->Set(String::NewSymbol("exports"),FunctionTemplate::New(Method)->GetFunction());
