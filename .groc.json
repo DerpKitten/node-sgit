@@ -1,0 +1,4 @@
+{
+	"glob": ["lib/sgit.js", "README.md"],
+	"github" : false
+}

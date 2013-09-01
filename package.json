@@ -12,7 +12,7 @@
    "exec-sync": "~0.1.6"
   },
   "devDependencies": {
-    "mocha": "~1.8.1",
+    "mocha": "~1.8.1"
   },
   "repository": {
     "type": "git",

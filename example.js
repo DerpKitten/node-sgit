@@ -1,4 +1,4 @@
-var sgit = require('./build/Release/sgit');
+var sgit = require('lib/sgit');
 
 sgit.init_repository('./sandbox',function (err, repo) {
 	if (err) {
