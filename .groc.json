@@ -1,5 +1,5 @@
 {
 	"glob": ["lib/sgit.js", "README.md"],
-	"github" : true,
+	"github" : false,
 	"out": "./doc"
 }
