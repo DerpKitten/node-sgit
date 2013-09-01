@@ -15,8 +15,8 @@ Simple node bindings to the [libgit2](http://libgit2.github.com) C library that 
 sgit right now supports:
 
 * creating repositories locally
-* initializing repositories locally
-* commit support is underway and will be completed shortly
+* commiting files to repositories locally
+* viewing commit log locally
 
 ## License
 
