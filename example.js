@@ -17,5 +17,5 @@ sgit.log('./sandbox',function(err,log) {
 	if (err) {
 		console.log(err);
 	}
-	console.log(JSON.parse(log));
+	console.log(log);
 });
