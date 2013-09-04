@@ -4,3 +4,5 @@ node_js:
 
 before_script:
   - node-gyp build
+
+script: ./compile_libgit2.sh
