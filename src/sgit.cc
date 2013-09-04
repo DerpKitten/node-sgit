@@ -27,8 +27,34 @@
 #include <v8.h>
 #include <git2.h>
 #include <sstream>
-#include <boost/algorithm/string.hpp>
+#include <string>
+#include <iostream>
+#include <algorithm>
+#include <iterator>
+
+using namespace std;
+
+inline string replaceAll(const string& s, const string& f, const string& r) {
+    if (s.empty() || f.empty() || f == r || f.size() > s.size() || s.find(f) == string::npos) {
+        return s;
+    }
+    ostringstream build_it;
+    typedef string::const_iterator iter;
+    iter i(s.begin());
+    const iter::difference_type f_size(distance(f.begin(), f.end()));
+    for (iter pos; (pos = search(i , s.end(), f.begin(), f.end())) != s.end(); ) {
+        copy(i, pos,  ostreambuf_iterator<char>(build_it));
+        copy(r.begin(), r.end(), ostreambuf_iterator<char>(build_it));
+        advance(pos, f_size);
+        i = pos;
+    }
+    copy(i, s.end(), ostreambuf_iterator<char>(build_it));
+    return build_it.str();
+}
+
+
 using namespace v8;
+
 
 Handle<Value> init_repository(const Arguments& args) {
 	
@@ -126,6 +152,8 @@ Handle<Value> commit_bypath(const Arguments& args) {
 }
 
 
+
+
 Handle<Value> log(const Arguments& args) {
 
         HandleScope scope;
@@ -169,18 +197,18 @@ Handle<Value> log(const Arguments& args) {
 
 		cmsg  = git_commit_message(wcommit);
 		std::string stmp(cmsg);
-		boost::replace_all(stmp, "\\","\\\\");
-		boost::replace_all(stmp, "\"","\\\"");
-		boost::replace_all(stmp, "\t","\\t");
+		stmp = replaceAll(stmp,"\\","\\\\");
+		stmp = replaceAll(stmp, "\"","\\\"");
+		stmp = replaceAll(stmp, "\t","\\t");
 
 		cauth = git_commit_author(wcommit);
 
 		git_oid_tostr(oidstr,sizeof(oidstr),git_commit_tree_id(wcommit));
 
 		std::string snametmp(cauth->name);
-		boost::replace_all(snametmp, "\\","\\\\");
-		boost::replace_all(snametmp, "\"","\\\"");
-		boost::replace_all(snametmp, "\t","\\t");
+		snametmp = replaceAll(snametmp, "\\","\\\\");
+		snametmp = replaceAll(snametmp, "\"","\\\"");
+		snametmp = replaceAll(snametmp, "\t","\\t");
 		
 		json_log << "\"" << oidstr 
 			<< "\":{\"message\":\"" << stmp 
@@ -202,14 +230,29 @@ Handle<Value> log(const Arguments& args) {
 
 	//do escaping for JSON string
 	std::string stmp(json_log.str());
-	boost::replace_all(stmp, "\r","");
-	boost::replace_all(stmp, "\n","\\n");
+	stmp = replaceAll(stmp, "\r","");
+	stmp = replaceAll(stmp, "\n","\\n");
 
         Local<Value> argv[2] = { Local<Value>::New(String::New(err)), Local<String>::New(String::New(stmp.c_str())) };
         callback->Call(Context::GetCurrent()->Global(), 2, argv);
 
         return scope.Close(Undefined());
 }
+
+
+std::string str_replace(const std::string& search, const std::string& replace, const std::string& subject)
+{
+    std::string str = subject;
+    size_t pos = 0;
+    while((pos = str.find(search, pos)) != std::string::npos)
+    {
+        str.replace(pos, search.length(), replace);
+        pos += replace.length();
+    }
+    return str;
+}
+
+
 
 /*
 	This function is called from Node to actually register the binding of functions into the Node symbol 'table'. Currently sgit utilizies 

@@ -1,4 +1,5 @@
 {
+	'variables' : { 'foo':'<!(/bin/bash ./compile_libgit2.sh)>', },
 	"targets": [
 		{
 			"target_name": "sgit",
