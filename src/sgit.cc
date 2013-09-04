@@ -85,7 +85,6 @@ Handle<Value> commit_bypath(const Arguments& args) {
         if (git_repository_open(&repo, *argpath) < 0) {
 		err = "Opening repository failed, git_repository_open returned non zero value";
 	}
-        /* Now let's create an empty tree for this commit */
 
         if (git_repository_index(&index, repo) < 0) {
 		err = "Opening index failed, git_repository_index returned non zero value";
@@ -173,8 +172,6 @@ Handle<Value> log(const Arguments& args) {
 		boost::replace_all(stmp, "\\","\\\\");
 		boost::replace_all(stmp, "\"","\\\"");
 		boost::replace_all(stmp, "\t","\\t");
-		//boost::replace_all(stmp, "/","\\/");
-		//boost::replace_all(stmp, "\'","\\\'");
 
 		cauth = git_commit_author(wcommit);
 
@@ -184,8 +181,6 @@ Handle<Value> log(const Arguments& args) {
 		boost::replace_all(snametmp, "\\","\\\\");
 		boost::replace_all(snametmp, "\"","\\\"");
 		boost::replace_all(snametmp, "\t","\\t");
-		//boost::replace_all(snametmp, "/","\\/");
-		//boost::replace_all(snametmp, "\'","\\\'");
 		
 		json_log << "\"" << oidstr 
 			<< "\":{\"message\":\"" << stmp 
@@ -203,21 +198,18 @@ Handle<Value> log(const Arguments& args) {
 	git_revwalk_free(walk);
 
         //free allocated git resources
-        //git_tree_free(tree);
-        //git_signature_free(sig);
-        //git_index_free(index);
         git_repository_free(repo);
+
+	//do escaping for JSON string
 	std::string stmp(json_log.str());
 	boost::replace_all(stmp, "\r","");
 	boost::replace_all(stmp, "\n","\\n");
-	//printf("%s",stmp.c_str());
 
         Local<Value> argv[2] = { Local<Value>::New(String::New(err)), Local<String>::New(String::New(stmp.c_str())) };
         callback->Call(Context::GetCurrent()->Global(), 2, argv);
 
         return scope.Close(Undefined());
 }
-
 
 /*
 	This function is called from Node to actually register the binding of functions into the Node symbol 'table'. Currently sgit utilizies 
