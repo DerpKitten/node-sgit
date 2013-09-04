@@ -12,4 +12,5 @@ before_script:
   - cd .. 
   - bash ./compile_libgit2.sh
   - node-gyp configure
-  - node-gyp build
+
+script: node-gyp rebuild
