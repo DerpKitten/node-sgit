@@ -3,5 +3,6 @@ node_js:
   - 0.10
 
 before_script:
+  - bash ./compile_libgit2.sh
   - node-gyp configure
   - node-gyp build

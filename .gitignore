@@ -1,5 +1,4 @@
 build/
 node_modules/
-dep/libgit2/
 doc/
 mksand.sh
