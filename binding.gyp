@@ -11,7 +11,7 @@
 			],
 			"libraries": [
 				"-L<!(pwd)/deps/libgit2/libgit2.so",
-				
+				"-lgit2"	
 			],
 			'cflags': [
 				'-Wall'

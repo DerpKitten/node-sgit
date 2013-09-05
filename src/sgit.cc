@@ -60,7 +60,7 @@ Handle<Value> init_repository(const Arguments& args) {
 	
 	HandleScope scope;
 
-	Local<String> path = Local<String>::Cast(args[0]);
+	Local<String> path = args[0]->ToString();
 	Local<Function> callback = Local<Function>::Cast(args[1]);
 	const char *err = "";
 
@@ -81,7 +81,6 @@ Handle<Value> init_repository(const Arguments& args) {
 
 	//TODO: are we leaking any memory on the v8 types and related casts/conversions?
         git_repository_free(repo);
-        git_threads_shutdown();
 
 	return scope.Close(Undefined());
 }
@@ -91,9 +90,9 @@ Handle<Value> commit_bypath(const Arguments& args) {
 
 	HandleScope scope;
 
-	Local<String> path = Local<String>::Cast(args[0]);
-	Local<String> file = Local<String>::Cast(args[1]);
-	Local<String> message = Local<String>::Cast(args[2]);
+	Local<String> path = args[0]->ToString();
+	Local<String> file = args[1]->ToString();
+	Local<String> message = args[2]->ToString();
 	Local<Function> callback = Local<Function>::Cast(args[3]);
 	const char *err = "";
 
@@ -145,8 +144,11 @@ Handle<Value> commit_bypath(const Arguments& args) {
         git_index_free(index);
         git_repository_free(repo);
 
-	Local<Value> argv[1] = { Local<Value>::New(String::New(err)) };
-	callback->Call(Context::GetCurrent()->Global(), 1, argv);
+	char completed_commit_id[GIT_OID_HEXSZ + 1];
+	git_oid_tostr(completed_commit_id,sizeof(completed_commit_id),&commit_id);
+
+	Local<Value> argv[2] = { Local<Value>::New(String::New(err)),Local<Value>::New(String::New(completed_commit_id)) };
+	callback->Call(Context::GetCurrent()->Global(), 2, argv);
 
 	return scope.Close(Undefined());
 }
@@ -158,7 +160,7 @@ Handle<Value> log(const Arguments& args) {
 
         HandleScope scope;
 
-        Local<String> path = Local<String>::Cast(args[0]);
+        Local<String> path = args[0]->ToString();
         Local<Function> callback = Local<Function>::Cast(args[1]);
         const char *err = "";
 
@@ -185,15 +187,19 @@ Handle<Value> log(const Arguments& args) {
 
 	char oidstr[GIT_OID_HEXSZ + 1];
 
-        git_oid *walkoid =  (git_oid *)oid;
-        //int error;
+        git_oid walkoid;
+	git_oid_cpy(&walkoid,oid);
+
 	std::stringstream json_log;
+	
+	//Initialize JSON return string
 	json_log << "{";
-        while ((git_revwalk_next(walkoid, walk)) == 0) {
+
+        while ((git_revwalk_next(&walkoid, walk)) == 0) {
 		const git_signature *cauth;
 		const char *cmsg;
-                git_commit_lookup(&wcommit, repo, walkoid);
-                //check_error(error, "looking up commit during revwalk");
+
+                git_commit_lookup(&wcommit, repo, &walkoid);
 
 		cmsg  = git_commit_message(wcommit);
 		std::string stmp(cmsg);
@@ -203,7 +209,7 @@ Handle<Value> log(const Arguments& args) {
 
 		cauth = git_commit_author(wcommit);
 
-		git_oid_tostr(oidstr,sizeof(oidstr),git_commit_tree_id(wcommit));
+		git_oid_tostr(oidstr,sizeof(oidstr),git_commit_id(wcommit));
 
 		std::string snametmp(cauth->name);
 		snametmp = replaceAll(snametmp, "\\","\\\\");
