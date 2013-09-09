@@ -4,7 +4,10 @@
 		{
 			"target_name": "sgit",
 			"sources": [ 
-				"src/sgit.cc" 
+				"src/sgit.cc", 
+				"src/init.cc",
+				"src/commit.cc",
+				"src/log.cc"
 			],
 			"include_dirs": [
 				"deps/libgit2/include"
@@ -14,7 +17,7 @@
 				"-lgit2"	
 			],
 			'cflags': [
-				'-Wall'
+				'-g -Wall'
 			],
 			'ldflags': [
                                 '-Wl,-rpath,\$$ORIGIN/../../deps/libgit2'

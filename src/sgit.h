@@ -6,3 +6,5 @@
 #include <cstring>
 #include <cstdlib>
 
+using namespace std;
+string replaceAll(const string& s, const string& f, const string& r);
