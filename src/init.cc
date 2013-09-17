@@ -36,6 +36,8 @@ struct init_params
 
 void init_repository_worker(uv_work_t* req) {
 
+	
+	//git_threads_init();
 	init_params* request = (init_params*)req->data;
 	git_repository *repo = NULL;
 	const char* err = "";
@@ -46,6 +48,8 @@ void init_repository_worker(uv_work_t* req) {
         }
 
 	request->err = err;
+	git_repository_free(repo);
+	//git_threads_shutdown();
 }
 
 void init_repository_callback(uv_work_t* req) {

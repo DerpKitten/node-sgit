@@ -37,6 +37,8 @@ struct commit_params {
 
 void commit_worker(uv_work_t* req) {
 
+	//git_threads_init();
+
 	commit_params* request = (commit_params*)req->data;
 	const char* err = "";
 
@@ -49,38 +51,43 @@ void commit_worker(uv_work_t* req) {
         if (git_repository_open(&repo, request->path) < 0) {
                 err = "Opening repository failed, git_repository_open returned non zero value";
         }
+	else {
 
-        if (git_repository_index(&index, repo) < 0) {
-                err = "Opening index failed, git_repository_index returned non zero value";
-        }
+        	if (git_repository_index(&index, repo) < 0) {
+        	        err = "Opening index failed, git_repository_index returned non zero value";
+        	}
+		else {
 
-        if (git_index_add_bypath(index, request->file) < 0) {
-                err = "Index add failed, git_index_add_bypath returned non zero value";
-        }
-        git_index_write(index);
-
-        git_commit *parent = NULL;
-
-        // it is okay if looking up the HEAD fails
-        git_revparse_single((git_object **)&parent, repo, "HEAD");
-
-        git_index_write_tree(&tree_id, index);
-
-        //refresh index
-        git_repository_index(&index, repo);
-
-        git_tree_lookup(&tree, repo, &tree_id);
-
-	// use default repo signature info if present in repo config, otherwise use sgite default
-
-        if (git_signature_default(&sig, repo) < 0) {
-                git_signature_now(&sig, "Node-sgit https://github.com/derpkitten/node-sgit", "none@example.com");
-        }
-
-        git_commit_create_v(&commit_id, repo, "HEAD", sig, sig, NULL, request->message, tree, parent ? 1 : 0, parent);
-
-        git_oid_tostr(request->commit_id,sizeof(request->commit_id),&commit_id);
-
+	        	if (git_index_add_bypath(index, request->file) < 0) {
+	        	        err = "Index add failed, git_index_add_bypath returned non zero value";
+	        	}
+			else {
+		        	git_index_write(index);
+		
+		        	git_commit *parent = NULL;
+			
+			        // it is okay if looking up the HEAD fails
+			        git_revparse_single((git_object **)&parent, repo, "HEAD");
+			
+			        git_index_write_tree(&tree_id, index);
+			
+			        //refresh index
+			        git_repository_index(&index, repo);
+			
+			        git_tree_lookup(&tree, repo, &tree_id);
+			
+				// use default repo signature info if present in repo config, otherwise use sgit default
+			        if (git_signature_default(&sig, repo) < 0) {
+			                git_signature_now(&sig, "Node-sgit https://github.com/derpkitten/node-sgit", "none@example.com");
+			        }
+			
+			        git_commit_create_v(&commit_id, repo, "HEAD", sig, sig, NULL, request->message, tree, parent ? 1 : 0, parent);
+			
+			        git_oid_tostr(request->commit_id,sizeof(request->commit_id),&commit_id);
+			}
+		}
+	}
+	
 	request->err = err;
 
         //free allocated git resources
@@ -88,6 +95,7 @@ void commit_worker(uv_work_t* req) {
         git_signature_free(sig);
         git_index_free(index);
         git_repository_free(repo);
+	//git_threads_shutdown();
 }
 
 void commit_callback(uv_work_t* req) {
@@ -109,6 +117,7 @@ void commit_callback(uv_work_t* req) {
 extern "C" Handle<Value> commit_bypath(const Arguments& args) {
 
     HandleScope scope;
+	
 
     Local<String> path = args[0]->ToString();
     Local<String> file = args[1]->ToString();

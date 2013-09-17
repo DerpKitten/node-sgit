@@ -36,13 +36,14 @@ struct log_params {
 
 void log_repository_worker(uv_work_t* req) {
 
+	//git_threads_init();
 	log_params* request = (log_params*)req->data;
 	const char* err = "";
 
 	git_repository *repo;
         const git_oid *oid;
 
-        if (git_repository_open(&repo, "./sandbox") < 0) {
+        if (git_repository_open(&repo, request->path) < 0) {
                 err = "Opening repository failed, git_repository_open returned non zero value";
         }
 
@@ -112,6 +113,7 @@ void log_repository_worker(uv_work_t* req) {
 	request->err = err;
     	request->log_data = (char *) malloc(stmp.length() + 1);
         strcpy(request->log_data,stmp.c_str());
+	//git_threads_shutdown();
 }
 
 void log_repository_callback(uv_work_t* req) {
@@ -142,8 +144,8 @@ extern "C" Handle<Value> log_repository(const Arguments& args) {
 
     String::AsciiValue argpath(path);
 
-   // request->path = (char *) malloc(argpath.length() + 1);
-   // strcpy(request->path,*argpath);
+    request->path = (char *) malloc(argpath.length() + 1);
+    strcpy(request->path,*argpath);
 
     uv_work_t* req = new uv_work_t();
     req->data = request;
